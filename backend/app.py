@@ -145,10 +145,11 @@ async def find_nearby_places():
     return jsonify({"message": "Expected JSON"}), 400
 
 
+# going to have to change these based on how we want to get the form feed responses from users
 @app.route("/api/add_user", methods=["GET", "POST"])
 def add_user():
     data = request.get_json()
-    if not data or "form_responses" not in data:
+    if not data:
         return jsonify({"message": "Missing form_responses"}), 400
 
     form_text = data.get("form_responses")
@@ -177,6 +178,12 @@ def add_user():
         return jsonify({"message": "Failed to create user"}), 500
 
 
+# gotta generate the group feed off similar interests, but unsure how to go about it
+@app.route("/api/generate_group_feed", methods=["GET", "POST"])
+def gen_group_sim():
+    user_vectors = np.array([])
+    covariance_matrix =  np.cov(user_vectors, rowvar=False) #https://en.wikipedia.org/wiki/Covariance_matrix
+    return jsonify({"message": "error parsing json"}), 400
 # Run the Flask app
 if __name__ == "__main__":
     app.run(host="localhost", port=5000, debug=True)
