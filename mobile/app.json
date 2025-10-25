@@ -16,7 +16,7 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Allow Mosaic to use your location",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Mosaic to use your location",
-        "NSLocationAlwaysUsageDescription":  "Allow Mosaic to use your location",
+        "NSLocationAlwaysUsageDescription": "Allow Mosaic to use your location",
         "UIBackgroundModes": [
           "location"
         ]
@@ -47,9 +47,10 @@
       [
         "@react-native-google-signin/google-signin",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.466033117237-j9tbq92puccbv6820v0bj8307jb2co34"
+          "iosUrlScheme": "com.googleusercontent.apps.968440012903-g9t5jtr2jc2khfuu3mtaa0q4bofrqccb"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
