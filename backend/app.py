@@ -28,6 +28,7 @@ def get_embedding(text):
     response = openai.embeddings.create(
         model="text-embedding-3-small",
         input=text,
+        dimensions=512, # 512 cuz we broke
     )
     return response.data[0].embedding
 
@@ -38,24 +39,28 @@ def normalize(vec):
     return (v / np.linalg.norm(v)).tolist()
 
 
-def update_user_vector(user_id, place_vector, alpha=0.2):
+def update_user_vector(user_id, place_id, alpha=0.2):
     """Update user embedding after liking a place."""
-    user_doc = client.get(index=INDEX_NAME, id=user_id, ignore=[404])
-
-    if not user_doc or not user_doc.get("found"):
-        return jsonify({"message": "User not found"}), 404
-
+    user_doc = client.get(index=INDEX_NAME, id=user_id)
+    place_doc = client.get(index=INDEX_NAME, id=place_id)
+    
+    # return type of client.get is either self or None  
+    if not user_doc or place_doc:
+        return jsonify({"message": "Error fetching related docs"}), 404
+    place_vec = np.array(place_doc["_source"]["place_vec"])
     user_vec = np.array(user_doc["_source"]["user_vec"])
-    new_vec = normalize((1 - alpha) * user_vec + alpha * np.array(place_vector))
+    new_vec = normalize((1 - alpha) * user_vec + alpha * place_vec)
+    try: 
+        client.update(
+            index=INDEX_NAME,
+            id=user_id,
+            body={"doc": {"user_vec": new_vec}},
+        )
 
-    client.update(
-        index=INDEX_NAME,
-        id=user_id,
-        body={"doc": {"user_vec": new_vec}},
-    )
-
-    return jsonify({"message": f"User {user_id} vector updated"}), 200
-
+        return jsonify({"message": f"User {user_id} vector updated"}), 200
+    except Exception as e:
+        print(f"ran into error when trying to update user vector: {e}")
+        return jsonify({f"message": "ran into an exception"}), 400
 
 def update_view_count(doc_id):
     """
@@ -97,19 +102,23 @@ async def find_nearby_places():
         for place in response.places:
             place_id = place.id
             
-            place_name = str(getattr(place, "display_name", "No title found"))
-         
-            summary = place.display_name # default to title of place
-            if hasattr(
-                place, "generative_summary"
-            ):  # sometimes generative summary is unavailable
-                summary = place.generative_summary.overview.text            
-            print("Indexing place:", place)
-            print(summary)
-
+            # skip if we already processed this place 
             doc_exists = client.exists(id=place_id, index=INDEX_NAME)
             if doc_exists:
                 continue
+            
+            place_name = str(getattr(place, "display_name", "No title found"))
+         
+            summary = "" 
+            if hasattr(
+                place, "generative_summary"
+            ):  # sometimes generative summary is unavailable
+                summary = place.generative_summary.overview.text
+            
+            print(place) 
+            
+            # create embedded vector for the place based off summary            
+            place_dense_vec = get_embedding(summary)           
 
             doc = {
                 "location": {
@@ -117,19 +126,19 @@ async def find_nearby_places():
                     "lon": lon,
                 },
                 "place_id": place_id,
-                "place_summary": summary,
+                "place_summary_text": summary,
                 "place_name": place_name,
+                "place_vec": place_dense_vec,
                 "doc_type": "place",
                 "view_count": 1,
             }
 
             try:
                 res = client.index(index=INDEX_NAME, id=place_id, document=doc)
-
             except Exception as e:
                 print(f"Indexing error: {e}")
-                return jsonify({"message": "Failed to index doc"}), 500
-
+                # we just continue lol
+                
         # we will need to return more data to the user from places api like name, photos, etc.
         return jsonify({"places": "hi"}), 200
 
