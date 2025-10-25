@@ -14,9 +14,9 @@
         "googleMapsApiKey": "AIzaSyBQ7ygAw0dp2fiF7abThmbRKlsrQbHBbQc"
       },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Allow Vacay to use your location",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Vacay to use your location",
-        "NSLocationAlwaysUsageDescription":  "Allow Vacay to use your location",
+        "NSLocationWhenInUseUsageDescription": "Allow Mosaic to use your location",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Mosaic to use your location",
+        "NSLocationAlwaysUsageDescription":  "Allow Mosaic to use your location",
         "UIBackgroundModes": [
           "location"
         ]
@@ -41,7 +41,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Vacay to use your location"
+          "locationAlwaysAndWhenInUsePermission": "Allow Mosaic to use your location"
         }
       ],
       [
