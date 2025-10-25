@@ -5,9 +5,18 @@ import {
 } from '@react-native-google-signin/google-signin'
 import { supabase } from '@/lib/supabase'
 
+const signOut = async () => {
+    try {
+      await GoogleSignin.signOut();
+    } catch {}
+
+    await supabase.auth.signOut();
+};
+
 export default function () {
   GoogleSignin.configure({
     iosClientId: '968440012903-g9t5jtr2jc2khfuu3mtaa0q4bofrqccb.apps.googleusercontent.com',
+    webClientId: '968440012903-ma04tus0j7j222v1euo1qcgeilc3jati.apps.googleusercontent.com',
   })
 
   return (
@@ -15,8 +24,8 @@ export default function () {
       size={GoogleSigninButton.Size.Wide}
       color={GoogleSigninButton.Color.Dark}
       onPress={async () => {
+        await signOut()
         try {
-          await GoogleSignin.signOut();
           await GoogleSignin.hasPlayServices()
           const userInfo = await GoogleSignin.signIn()
           console.log(userInfo)

@@ -11,8 +11,6 @@ export default function AuthProvider({ children }: PropsWithChildren) {
   // Fetch the session once, and subscribe to auth state changes
   useEffect(() => {
     const fetchSession = async () => {
-      setIsLoading(true)
-
       const {
         data: { session },
         error,
@@ -25,7 +23,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
       }
 
       setSession(session)
-      setIsLoading(false)
+      // Don't set isLoading to false here - let the profile effect handle it
     }
 
     fetchSession()
@@ -46,21 +44,24 @@ export default function AuthProvider({ children }: PropsWithChildren) {
   // Fetch the profile when the session changes
   useEffect(() => {
     const fetchProfile = async () => {
-      setIsLoading(true)
+      // Only set loading if session is not undefined (meaning we've finished initial fetch)
+      if (session !== undefined) {
+        setIsLoading(true)
 
-      if (session) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
+        if (session) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
 
-        setProfile(data)
-      } else {
-        setProfile(null)
+          setProfile(data)
+        } else {
+          setProfile(null)
+        }
+
+        setIsLoading(false)
       }
-
-      setIsLoading(false)
     }
 
     fetchProfile()
@@ -72,7 +73,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
         session,
         isLoading,
         profile,
-        isLoggedIn: session != undefined,
+        isLoggedIn: !!session,
       }}
     >
       {children}
