@@ -1,46 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useAuth } from '../hooks/useAuth';
+import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../constants/theme';
+import GoogleLoginButton from '../components/GoogleLoginButton';
 
 const AuthScreen = () => {
-  const [loading, setLoading] = useState(false);
-  const { mockSignIn } = useAuth() as any;
-
-  const handleSignIn = async () => {
-    try {
-      setLoading(true);
-      // TEMPORARY: Mock sign in - replace with signInWithGoogle() later
-      // await signInWithGoogle();
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      mockSignIn();
-    } catch (error) {
-      console.error('Sign in error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Mosaic</Text>
       <Text style={styles.subtitle}>Plan trips together</Text>
-      
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSignIn}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Signing in...' : 'Sign In (Mock)'}
-        </Text>
-      </TouchableOpacity>
-      <Text style={styles.note}>
-        Note: This is a mock login for testing.{'\n'}
-        Real Google OAuth will be added later.
-      </Text>
+      <GoogleLoginButton />
     </View>
   );
 };

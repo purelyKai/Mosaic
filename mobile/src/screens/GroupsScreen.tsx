@@ -5,14 +5,15 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { Group } from '../types';
 import { apiService } from '../services/api.service';
-import { useAuth } from '../hooks/useAuth';
+import { useAuthContext } from '../context/AuthContext';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../constants/theme';
+import SignOutButton from '../components/GoogleLogoutButton';
 
 type GroupsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Groups'>;
 
 const GroupsScreen = () => {
   const navigation = useNavigation<GroupsScreenNavigationProp>();
-  const { user, signOut } = useAuth();
+  const {} = useAuthContext();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,9 +56,7 @@ const GroupsScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Trips</Text>
-        <TouchableOpacity onPress={signOut}>
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
+        <SignOutButton />
       </View>
 
       {loading ? (
