@@ -10,6 +10,49 @@ import PreferencesForm from '../components/PreferencesForm';
 
 type GroupsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Groups'>;
 
+
+const categories: Record<string, string[]> = {
+    'Dietary': [
+    'Vegan', 'Vegetarian', 'Gluten-Free',
+  ],
+  'Dining Styles & Venues': [
+    'Bars', 'Cafes', 'Brunch', 'Fine Dining', 'Casual Dining',
+    'Street Food', 'Food Trucks', 'Buffet', 'Takeout', 'Delivery', 'Farm-to-Table',
+  ],
+  'Activities': [
+    'Outdoor', 'Live Music', 'Museums', 'Fitness', 'Spa',
+    'Animals', 'Shows'
+  ]
+};
+
+function categorizeSelections(selections: string[]): Record<string, string[]> {
+  const result: Record<string, string[]> = {};
+
+  for (const [category, values] of Object.entries(categories)) {
+    result[category] = selections.filter(item => values.includes(item));
+  }
+
+  return result;
+}
+
+function categorySentances(categorized: Record<string, string[]>): string[] {
+  return Object.entries(categorized)
+    .filter(([_, values]) => values.length > 0)
+    .map(
+      ([category, values]) =>
+        `User has ${category} preferences of ${values.join(', ')}.`
+    );
+}
+
+function listToSentances(selections: string[]): string {
+
+  const categorized: Record<string, string[]> = categorizeSelections(selections);
+  const sentances: string[] = categorySentances(categorized)
+
+  return sentances.join(' ');
+}
+
+
 const PreferencesScreen = () => {
   const navigation = useNavigation<GroupsScreenNavigationProp>();
   const {} = useAuthContext();
@@ -22,10 +65,10 @@ const PreferencesScreen = () => {
         <SignOutButton />
       </View>
 
-      <PreferencesForm updatePreferences={setSelected} preferences={selected}/>
+      <PreferencesForm updatePreferences={setSelected} preferences={selected} categories={categories}/>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={() => console.log('Create group')}>
+        <TouchableOpacity style={styles.button} onPress={() => console.log('String to init user vector: ', listToSentances(selected))}>
           <Text style={styles.buttonText}>Save Preferences</Text>
         </TouchableOpacity>
       </View>

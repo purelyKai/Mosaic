@@ -7,55 +7,13 @@ import {
   StyleSheet,
 } from 'react-native';
 
-type FoodCategories = Record<string, string[]>;
-
-const FOOD_CATEGORIES: FoodCategories = {
-    'Dietary:': [
-    'Vegan', 'Vegetarian', 'Gluten-Free',
-  ],
-  'Dining Styles & Venues': [
-    'Bars', 'Cafes', 'Brunch', 'Fine Dining', 'Casual Dining',
-    'Street Food', 'Food Trucks', 'Buffet', 'Takeout', 'Delivery', 'Farm-to-Table',
-  ],
-  'Activities': [
-    'Outdoor', 'Live Music', 'Museums', 'Fitness', 'Spa',
-    'Animals', 'Shows'
-  ]
-};
-
-function categorizeSelections(selections: string[]): Record<string, string[]> {
-  const result: Record<string, string[]> = {};
-
-  for (const [category, values] of Object.entries(FOOD_CATEGORIES)) {
-    result[category] = selections.filter(item => values.includes(item));
-  }
-
-  return result;
-}
-
-function categorySentances(categorized: Record<string, string[]>): string[] {
-  return Object.entries(categorized)
-    .filter(([_, values]) => values.length > 0)
-    .map(
-      ([category, values]) =>
-        `User has ${category} preferences of ${values.join(', ')}.`
-    );
-}
-
-function listToSentances(selections: string[]): string {
-
-  const categorized: Record<string, string[]> = categorizeSelections(selections);
-  const sentances: string[] = categorySentances(categorized)
-
-  return sentances.join(' ');
-}
-
 type Props = {
   updatePreferences: (value: string[]) => void;
   preferences: string[];
+  categories: Record<string, string[]>
 };
 
-const PreferencesForm: React.FC<Props> = ({ updatePreferences, preferences }) => {
+const PreferencesForm: React.FC<Props> = ({ updatePreferences, preferences, categories }) => {
 
 const toggleCategory = (value: string) => {
   const updated = preferences.includes(value)
@@ -68,7 +26,7 @@ const toggleCategory = (value: string) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {Object.entries(FOOD_CATEGORIES).map(([theme, values]) => (
+      {Object.entries(categories).map(([theme, values]) => (
         <View key={theme} style={styles.section}>
           <Text style={styles.sectionTitle}>{theme}</Text>
           <View style={styles.grid}>
