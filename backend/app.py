@@ -1,4 +1,3 @@
-import uuid
 import os
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
@@ -6,7 +5,6 @@ from flask import Flask, request, jsonify
 import numpy as np
 import openai
 from find_places import find_places
-# from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 
@@ -22,7 +20,8 @@ client = Elasticsearch(
 
 app = Flask(__name__)
 
-openai.api_key = OPENAI_API_KEY # someones gotta make this
+openai.api_key = OPENAI_API_KEY  # someones gotta make this
+
 
 def get_embedding(text):
     """Generate embedding for text using OpenAI."""
@@ -32,18 +31,12 @@ def get_embedding(text):
     )
     return response.data[0].embedding
 
-# using a bad embedding model for simplicity
-
-# def get_embedding(text):
-#     """Generate embedding for text using SentenceTransformer."""
-#     model = SentenceTransformer('all-MiniLM-L6-v2')
-#     embedding = model.encode(text)
-#     return embedding.tolist()
 
 def normalize(vec):
     """Normalize a vector to unit length."""
     v = np.array(vec)
     return (v / np.linalg.norm(v)).tolist()
+
 
 def update_user_vector(user_id, place_vector, alpha=0.2):
     """Update user embedding after liking a place."""
@@ -52,16 +45,17 @@ def update_user_vector(user_id, place_vector, alpha=0.2):
     if not user_doc or not user_doc.get("found"):
         return jsonify({"message": "User not found"}), 404
 
-    user_vec = np.array(user_doc["_source"]["embedding"])
+    user_vec = np.array(user_doc["_source"]["user_vec"])
     new_vec = normalize((1 - alpha) * user_vec + alpha * np.array(place_vector))
 
     client.update(
         index=INDEX_NAME,
         id=user_id,
-        body={"doc": {"embedding": new_vec}},
+        body={"doc": {"user_vec": new_vec}},
     )
 
     return jsonify({"message": f"User {user_id} vector updated"}), 200
+
 
 def update_view_count(doc_id):
     """
@@ -86,7 +80,7 @@ def update_view_count(doc_id):
 
 
 # finds nearby places to a user and indexes them
-@app.route("/api/find_places", methods=["POST"])
+@app.route("/api/find_places", methods=["GET", "POST"])
 async def find_nearby_places():
     if request.is_json:
         data = request.get_json()
@@ -97,28 +91,34 @@ async def find_nearby_places():
         if not all([lat, lon]):
             return jsonify({"message": "Missing required fields: lat, lon"}), 400
 
-        
         # run async function synchronously
         response = find_places(lat, lon)
 
         for place in response.places:
             place_id = place.id
-            summary =  "No summary available."
-            if hasattr(place, "generative_summary"): # sometimes generative summary is unavailable
-                summary = place.generative_summary.overview.text
-
+            
+            place_name = str(getattr(place, "display_name", "No title found"))
+         
+            summary = place.display_name # default to title of place
+            if hasattr(
+                place, "generative_summary"
+            ):  # sometimes generative summary is unavailable
+                summary = place.generative_summary.overview.text            
             print("Indexing place:", place)
-
-            print(place_id, summary)
+            print(summary)
 
             doc_exists = client.exists(id=place_id, index=INDEX_NAME)
             if doc_exists:
                 continue
 
             doc = {
-                "location": {"lat": lat, "lon": lon},
+                "location": {
+                    "lat": lat,
+                    "lon": lon,
+                },
                 "place_id": place_id,
                 "place_summary": summary,
+                "place_name": place_name,
                 "doc_type": "place",
                 "view_count": 1,
             }
@@ -143,7 +143,7 @@ def add_user():
         return jsonify({"message": "Missing form_responses"}), 400
 
     form_text = data.get("form_responses")
-    userId = data.get("userId") # userId should come from supabase (frontend)
+    userId = data.get("userId")  # userId should come from supabase (frontend)
 
     # check if user exists in elastic db
     user_exists = client.exists(index=INDEX_NAME, id=userId)
@@ -156,8 +156,8 @@ def add_user():
 
     doc = {
         "doc_type": "user",
-        "userId": userId,
-        "embedding": user_embedding,
+        "user_uuid": userId,
+        "user_vec": user_embedding,
     }
 
     try:
@@ -166,7 +166,8 @@ def add_user():
     except Exception as e:
         print(f"Indexing error: {e}")
         return jsonify({"message": "Failed to create user"}), 500
-    
+
+
 # Run the Flask app
 if __name__ == "__main__":
     app.run(host="localhost", port=5000, debug=True)
