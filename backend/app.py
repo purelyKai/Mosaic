@@ -24,7 +24,7 @@ app = Flask(__name__)
 
 openai.api_key = OPENAI_API_KEY # someones gotta make this
 
-def get_embedding_openai(text):
+def get_embedding(text):
     """Generate embedding for text using OpenAI."""
     response = openai.embeddings.create(
         model="text-embedding-3-small",
@@ -78,16 +78,7 @@ def update_view_count(doc_id):
             },
             upsert={"view_count": 1},
         )
-
-        return (
-            jsonify(
-                {
-                    "message": f"View count updated. Result: {response['result']}",
-                    "id": doc_id,
-                }
-            ),
-            200,
-        )
+        return
 
     except Exception as e:
         print(f"Update error: {e}")
@@ -112,13 +103,17 @@ async def find_nearby_places():
 
         for place in response.places:
             place_id = place.id
-            if hasattr(place, "generativeSummary"): # sometimes generative summary is unavailable
-                summary = place.generativeSummary.overview.text
-            else: summary = "No summary available." # we should replace this with other attributes from the places api
+            summary =  "No summary available."
+            if hasattr(place, "generative_summary"): # sometimes generative summary is unavailable
+                summary = place.generative_summary.overview.text
+
+            print("Indexing place:", place)
+
+            print(place_id, summary)
 
             doc_exists = client.exists(id=place_id, index=INDEX_NAME)
             if doc_exists:
-                return update_view_count(place_id)
+                continue
 
             doc = {
                 "location": {"lat": lat, "lon": lon},
@@ -136,7 +131,7 @@ async def find_nearby_places():
                 return jsonify({"message": "Failed to index doc"}), 500
 
         # we will need to return more data to the user from places api like name, photos, etc.
-        return jsonify({"places": response.places}), 200
+        return jsonify({"places": "hi"}), 200
 
     return jsonify({"message": "Expected JSON"}), 400
 
