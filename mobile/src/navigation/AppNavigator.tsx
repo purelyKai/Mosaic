@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuthContext } from '../context/AuthContext';
@@ -6,12 +7,21 @@ import AuthScreen from '../screens/AuthScreen';
 import GroupsScreen from '../screens/GroupsScreen';
 import MainScreen from '../screens/MainScreen';
 import { RootStackParamList } from './types';
+import { COLORS } from '../constants/theme';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {
   const { isLoggedIn, isLoading } = useAuthContext()
-  console.log(isLoggedIn, isLoading)
+
+  // Show loading screen while auth state is being determined
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>

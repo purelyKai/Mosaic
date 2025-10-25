@@ -1,12 +1,23 @@
 import { supabase } from '@/lib/supabase'
+import { GoogleSignin } from '@react-native-google-signin/google-signin'
 import React from 'react'
 import { Button } from 'react-native'
-async function onSignOutButtonPress() {
+
+const handleSignOut = async () => {
+  try {
+    // Sign out from Google first
+    await GoogleSignin.signOut()
+  } catch (error) {
+    console.error('Error signing out from Google:', error)
+  }
+
+  // Sign out from Supabase
   const { error } = await supabase.auth.signOut()
   if (error) {
-    console.error('Error signing out:', error)
+    console.error('Error signing out from Supabase:', error)
   }
 }
-export default function SignOutButton() {
-  return <Button title="Sign out" onPress={onSignOutButtonPress} />
+
+export default function GoogleLogoutButton() {
+  return <Button title="Sign out" onPress={handleSignOut} />
 }
