@@ -8,9 +8,8 @@ load_dotenv()
 CLOUD_ID = os.getenv("ELASTIC_CLOUD_ID")
 ELASTIC_API_KEY = os.getenv("ELASTIC_API_KEY")
 INDEX_NAME = "mosaic-index"
-
 client = Elasticsearch(
-    cloud_id=CLOUD_ID,
+    CLOUD_ID,
     api_key=ELASTIC_API_KEY,
 )
 
@@ -46,14 +45,14 @@ def update_view_count(doc_id):
         print(f"Update error: {e}")
         return jsonify({"message": "Failed to update view count."}), 500
 
-@app.route("/api/upload_place", methods=["POST"])
+@app.route("/api/upload_place", methods=["GET","POST"])
 def upload_event():
     if request.is_json:
         data = request.get_json()
 
         # parse the json fields
         lat = float(data.get("lat"))
-        long = float(data.get("long"))
+        long = float(data.get("lon"))
         summary = data.get("summary")
         place_id = data.get("place_id")
         
