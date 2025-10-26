@@ -1,4 +1,4 @@
-import { Trip } from '../types'
+import { Trip, Place } from '../types'
 import { supabase } from '@/lib/supabase'
 
 
@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 export const updateGroupItinerary = async (
   memberIdList: string[],
   trip: Trip
-): Promise<string[] | null> => {
+): Promise<Place[] | null> => {
   try {
     const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/generate_group_feed`, {
       method: "POST",
@@ -26,9 +26,9 @@ export const updateGroupItinerary = async (
     }
 
     const data = await response.json();
-    const placeIds = data["group place ids"] as string[];
-    console.log(placeIds);
-    return placeIds;
+    const places: Place[] = parsePlacesResponse(data);
+    
+    return places;
   } catch (error) {
     console.error("Error updating group feed:", error);
     return null;
@@ -125,3 +125,20 @@ export const userFilledTrue = async (
     throw error;
   }
 };
+
+export const parsePlacesResponse = (response: any): Place[] => {
+  const placesDict = response.places;
+
+  return Object.entries(placesDict).map(([id, placeData]) => {
+    const data = placeData as { name: string; image_url: string };
+
+    return {
+      id,
+      name: data.name,
+      category: null, // Update if category info is available
+      imageUrl: data.image_url,
+    };
+  });
+};
+
+

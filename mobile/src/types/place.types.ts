@@ -3,14 +3,8 @@ export type CategoryType = 'food' | 'drinks' | 'entertainment' | 'nature';
 export interface Place {
   id: string;
   name: string;
-  category: CategoryType;
-  description: string;
+  category: CategoryType | null;
   imageUrl: string;
-  location: {
-    lat: number;
-    lng: number;
-  };
-  address: string;
 }
 
 export interface Vote {
