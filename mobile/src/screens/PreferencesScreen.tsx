@@ -72,9 +72,15 @@ const PreferencesScreen = () => {
       <PreferencesForm updatePreferences={setSelected} preferences={selected} categories={categories}/>
 
       {userId && (<View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={() => {
-        postPreferences(userId, listToSentances(selected));
-      }}>
+        <TouchableOpacity style={styles.button} onPress={async () => {
+          try {
+            await postPreferences(userId, listToSentances(selected));
+            navigation.navigate('Groups');
+          } catch (error) {
+            console.error('Error saving preferences:', error);
+            // Optionally, show an alert to the user
+          }
+        }}>
           <Text style={styles.buttonText}>Save Preferences</Text>
         </TouchableOpacity>
       </View>)}
