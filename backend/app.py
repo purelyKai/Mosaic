@@ -31,12 +31,10 @@ openai.api_key = OPENAI_API_KEY  # someones gotta make this
 def generate_response_dict(recs): 
     dih = {}  # this will be a dict that gets returns to the frontend man, idek anymore im so tired
     for place_id in recs:
-        name, image_url = "o", "o"
-        print(get_place_information(place_id))
+        name, image_url = get_place_information(place_id) 
         dih[str(place_id)] = {
             "image_url": image_url,
             "name": name,
-            "place_id": place_id
         } 
     return dih 
 

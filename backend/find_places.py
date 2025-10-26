@@ -58,7 +58,7 @@ def get_place_information(place_id):
         print("Final Image URL:", img_url)
         
         # 🚨 FINAL FIX: Return the image URL and the display name as a tuple
-        return (img_url, place_name) 
+        return (place_name,img_url) 
         
     else:
         print(f"Error fetching details (Status {res.status_code}): {res.text}")
