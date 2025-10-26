@@ -36,7 +36,7 @@ export const updateGroupItinerary = async (
 };
 
 
-export const postTrip = async (trip: Trip): Promise<string[] | null> => {
+export const postTrip = async (trip: Trip): Promise<Place[] | null> => {
   const requestBody = {
     lat: trip.latitude,
     long: trip.longitude,
@@ -61,7 +61,7 @@ export const postTrip = async (trip: Trip): Promise<string[] | null> => {
 
     // Second endpoint: /find_x_radius_locations
     const response2 = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/find_x_radius_locations`, {
-      method: "GET",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
@@ -74,9 +74,39 @@ export const postTrip = async (trip: Trip): Promise<string[] | null> => {
       throw new Error(data2.message || "Error from /find_x_radius_locations");
     }
 
-    const result = data2.result as string[];
-    console.log("Place IDs in radius:", result);
-    return result;
+    const places: Place[] = parsePlacesResponse(data2);
+    return places;
+  } catch (error) {
+    console.error("Error posting trip:", error);
+    return null;
+  }
+};
+
+export const getFeed = async (trip: Trip): Promise<Place[] | null> => {
+  const requestBody = {
+    lat: trip.latitude,
+    long: trip.longitude,
+    radius: trip.radius_miles,
+  };
+
+  try {
+
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/find_x_radius_locations`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Error from /find_x_radius_locations");
+    }
+
+    const places: Place[] = parsePlacesResponse(data);
+    return places;
   } catch (error) {
     console.error("Error posting trip:", error);
     return null;

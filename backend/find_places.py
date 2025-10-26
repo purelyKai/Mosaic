@@ -3,6 +3,9 @@ import requests
 from google.maps import places_v1
 from google.type import latlng_pb2
 from dotenv import load_dotenv
+import requests
+from bs4 import BeautifulSoup
+
 
 load_dotenv()
 
@@ -46,13 +49,22 @@ def get_place_information(place_id):
         print("Place Name:", place_name)
         print("Photo Resource Name (Token):", photo_resource_name)
         
-        # Construct the Final Image URL
+        # Construct the image report url
         img_url = data['photos'][0]['flagContentUri']
+
+        response = requests.get(img_url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        img = soup.find('img', id='preview-image')
+        if img:
+            print("Final Image URL:", img['src'])
+            return (place_name,str(img['src'])) 
+
+        else:
+            print("Image not found")
+            return (place_name,"") 
         
-        print("Final Image URL:", img_url)
         
-        # 🚨 FINAL FIX: Return the image URL and the display name as a tuple
-        return (place_name,img_url) 
         
     else:
         print(f"Error fetching details (Status {res.status_code}): {res.text}")

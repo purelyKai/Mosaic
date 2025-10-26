@@ -346,7 +346,7 @@ def adjust_user_vector():
     return jsonify({"message": "expected json"}), 400
 
 
-@app.route("/api/find_x_radius_locations", methods=["GET"])
+@app.route("/api/find_x_radius_locations", methods=["POSt"])
 async def find_locations():
     if request.is_json:
         data = request.get_json()
@@ -363,7 +363,7 @@ async def find_locations():
                     "must": [{"term": {"doc_type": "place"}}],
                     "filter": {
                         "geo_distance": {
-                            "distance": radi + "mi",
+                            "distance": str(radi) + "mi",
                             "location": {"lat": lat, "lon": long},
                         }
                     },
@@ -379,7 +379,7 @@ async def find_locations():
         for hit in place_docs["hits"]["hits"]:
             place_ids.append(hit["_source"]["place_id"])
         dih = generate_response_dict(place_ids)
-        return jsonify({"result": place_ids}), 200
+        return {"places": dih}, 200
     return jsonify({"message": "error parsing json"}), 400
 
 

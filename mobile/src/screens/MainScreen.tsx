@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Button } from 'react-native';
 import { useRoute, RouteProp, useNavigation, ParamListBase } from '@react-navigation/native';
 import { BottomTabNavigationProp, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -9,89 +9,61 @@ import { COLORS, SPACING, FONT_SIZES } from '../constants/theme';
 import { ImageBoard } from '../components/ImageBoard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCategoryContext } from '../context/CategoryContext';
+import { getFeed } from '../API/Elastic';
+import { supabase } from '@/lib/supabase'
 
 type MainScreenRouteProp = RouteProp<RootStackParamList, 'Main'>;
 type MainScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
 
 const Tab = createBottomTabNavigator();
 
-const DiscoverTab = () => {
-  const mockPlaces: Place[] = [
-  {
-    id: '1',
-    name: 'Hidden Beach',
-    category: 'nature',
-    description: 'A secluded beach with turquoise water.',
-    imageUrl: 'https://picsum.photos/300/400',
-    location: { lat: 12.34, lng: 56.78 },
-    address: '123 Ocean Dr',
-  },
-  {
-    id: '2',
-    name: 'Downtown Coffee',
-    category: 'drinks',
-    description: 'Cozy spot for remote work.',
-    imageUrl: 'https://picsum.photos/400/500',
-    location: { lat: 12.35, lng: 56.79 },
-    address: '456 City St',
-  },
+const DiscoverTab = ({ groupId }: { groupId: string }) => {
 
-    {   
-    id: '3',
-    name: 'Art Museum',
-    category: 'entertainment',
-    description: 'Modern art exhibits.',
-    imageUrl: 'https://picsum.photos/500/600',
-    location: { lat: 12.36, lng: 56.80 },
-    address: '789 Art Ln',
-    },
-    {   
-    id: '4',
-    name: 'Gourmet Bistro',
-    category: 'food',
-    description: 'Fine dining experience.',
-    imageUrl: 'https://picsum.photos/600/700',
-    location: { lat: 12.37, lng: 56.81 },
-    address: '101 Food Ct',
-    },
-    {
-    id: '5',
-    name: 'City Park',
-    category: 'nature',
-    description: 'Lush green space in the city.',
-    imageUrl: 'https://picsum.photos/700/800',
-    location: { lat: 12.38, lng: 56.82 },
-    address: '202 Park Ave',
-    },
-    {
-    id: '6',
-    name: 'Jazz Club',
-    category: 'entertainment',
-    description: 'Live jazz music every night.',
-    imageUrl: 'https://picsum.photos/800/900',
-    location: { lat: 12.39, lng: 56.83 },
-    address: '303 Music Blvd',
-    },
-    {
-    id: '7',
-    name: 'Sushi Place',
-    category: 'food',
-    description: 'Fresh sushi and sashimi.',
-    imageUrl: 'https://picsum.photos/900/1000',
-    location: { lat: 12.40, lng: 56.84 },
-    address: '404 Sushi St',
-    
+  const [places, setPlaces] = useState<Place[]>([])
+
+
+  const hasRun = useRef(false);
+  useEffect(() => {
+    if (!hasRun.current) {
+      const getPlaces = async () => {
+        try {
+          // Find the trip by id
+          const { data: trip, error: tripError } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('id', groupId)
+            .maybeSingle()  // Use maybeSingle instead of single to handle not found
+
+          if (tripError) {
+            console.error('Error finding trip:', tripError)
+            throw new Error('Failed to search for trip')
+          }
+          console.log("groupId in getPlaces: ", groupId)
+          console.log("trip in getPlaces: ", trip)
+
+          if (trip){
+            hasRun.current = true;
+
+            const placesInRadius = await getFeed(trip);
+            if(placesInRadius){
+              setPlaces(placesInRadius);
+            }
+            console.log("places in radius",placesInRadius)
+        }
+        } catch (error) {
+          console.error(error);
+        }
+      };
+      getPlaces();
     }
-
-
-];
+  });
 
   return (
     <View style={styles.container}>
       {/* Add CategoryFilter component */}
       {/* Add SwipeableStack component */}
       <ImageBoard
-        places={mockPlaces}
+        places={places}
         onSelect={(place) => console.log('Selected:', place.name)}
       />
     </View>
@@ -256,13 +228,14 @@ const MainScreen = () => {
     ),
   }}
 >
-      <Tab.Screen 
-        name="Discover" 
-        component={DiscoverTab}
+      <Tab.Screen
+        name="Discover"
         options={{
           title: 'Discover Places',
         }}
-      />
+      >
+        {() => <DiscoverTab groupId={groupId} />}
+      </Tab.Screen>
       <Tab.Screen 
         name="Group"
         options={{
