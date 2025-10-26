@@ -308,7 +308,7 @@ def find_locations():
                     "must": [{"term": {"doc_type": "place"}}],
                     "filter": {
                         "geo_distance": {
-                            "distance": radi + "km",
+                            "distance": radi + "mi",
                             "location": {"lat": lat, "lon": long},
                         }
                     }
@@ -319,8 +319,11 @@ def find_locations():
 
         if not place_docs:
             return jsonify({"message": "no places found in specified location"}), 400
-        print(place_docs)
-        return jsonify({"message": "greattt success"}), 200
+        
+        place_ids = [] 
+        for hit in place_docs['hits']['hits']: 
+            place_ids.append(hit['_source']['place_id'])
+        return jsonify({"result": place_ids}), 200
     return jsonify({"message": "error parsing json"}), 400
 
 
