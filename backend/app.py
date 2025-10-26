@@ -19,6 +19,7 @@ client = Elasticsearch(
     api_key=ELASTIC_API_KEY,
 )
 app = Flask(__name__)
+CORS(app)
 
 openai.api_key = OPENAI_API_KEY  # someones gotta make this
 
@@ -329,4 +330,4 @@ def find_locations():
 
 # Run the Flask app
 if __name__ == "__main__":
-    app.run(host="localhost", port=5000, debug=True)
+    app.run(host="127.0.0.1", port=5300, debug=True)
