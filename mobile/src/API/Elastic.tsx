@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase'
+
 export const postPreferences = async (
   id: string,
   sentences: string
@@ -17,10 +19,25 @@ export const postPreferences = async (
     });
 
     const data = await response.json();
+    await userFilledTrue(id)
+    
     if (!response.ok) {
       throw new Error(data.message || "Unexpected error occurred");
     }
     return true;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const userFilledTrue = async (
+  id: string
+) => {
+  console.log("userFilledTrue")
+  try {
+    await supabase.from('users')
+    .update({ filled_questionnaire: 'TRUE'})
+    .eq('id', id); // userId should match the user's UUID
   } catch (error) {
     throw error;
   }

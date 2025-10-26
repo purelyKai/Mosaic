@@ -14,7 +14,7 @@ import PreferencesScreen from '../screens/PreferencesScreen';
 const Stack = createStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {
-  const { isLoggedIn, isLoading } = useAuthContext()
+  const { isLoggedIn, isLoading, profile } = useAuthContext()
 
   // Show loading screen while auth state is being determined
   if (isLoading) {
@@ -32,7 +32,9 @@ export const AppNavigator = () => {
           <Stack.Screen name="Auth" component={AuthScreen} />
         ) : (
           <>
+          {!profile?.filled_questionnaire && (
             <Stack.Screen name="Preferences" component={PreferencesScreen} />
+          )}
             <Stack.Screen name="Groups" component={GroupsScreen} />
             <Stack.Screen name="Main" component={MainScreen} />
           </>
