@@ -3,6 +3,8 @@ export const postPreferences = async (
   sentences: string
 ) => {
   try {
+    console.log("sending req to: ", `${process.env.EXPO_PUBLIC_API_BASE_URL}/add_user`)
+    console.log("req body: ", JSON.stringify({form_responses: sentences, userId: id,}))
     const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/add_user`, {
       method: "POST",
       headers: {
