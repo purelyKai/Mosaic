@@ -8,6 +8,8 @@ import GroupsScreen from '../screens/GroupsScreen';
 import MainScreen from '../screens/MainScreen';
 import { RootStackParamList } from './types';
 import { COLORS } from '../constants/theme';
+import FoodForm from '../components/PreferencesForm';
+import PreferencesScreen from '../screens/PreferencesScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -30,6 +32,7 @@ export const AppNavigator = () => {
           <Stack.Screen name="Auth" component={AuthScreen} />
         ) : (
           <>
+            <Stack.Screen name="Preferences" component={PreferencesScreen} />
             <Stack.Screen name="Groups" component={GroupsScreen} />
             <Stack.Screen name="Main" component={MainScreen} />
           </>

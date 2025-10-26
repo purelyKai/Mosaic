@@ -18,7 +18,6 @@ client = Elasticsearch(
     CLOUD_ID,
     api_key=ELASTIC_API_KEY,
 )
-
 app = Flask(__name__)
 
 openai.api_key = OPENAI_API_KEY  # someones gotta make this
@@ -196,12 +195,13 @@ def add_user():
 
     # check if user exists in elastic db
     user_exists = client.exists(index=INDEX_NAME, id=userId)
-
+    print(user_exists)
     if user_exists:
         return jsonify({"message": "User already exists"}), 400
     if form_text == "":
         form_text = "This user has no strong preferences and has no dietary preferences, is open to all food types, and is open to all activities."
     # generate initial embedding
+    print(form_text)
     user_embedding = get_embedding(form_text)
 
     doc = {
