@@ -98,6 +98,8 @@ def update_user_vector(user_id, place_id, alpha=0.2):
     # return type of client.get is either self or None
     if not user_doc or not place_doc:
         return jsonify({"message": "Error fetching related docs"}), 404
+    
+    r = update_view_count(place_doc['hits']['hits'][0]['_id']) # update view count
     user_source = user_doc["hits"]["hits"][0]["_source"]
     place_source = place_doc["hits"]["hits"][0]["_source"]
 
@@ -202,7 +204,7 @@ async def find_nearby_places():
 
 
 @app.route("/api/add_user", methods=["POST"])
-def add_user():
+async def add_user():
     data = request.get_json()
     if not data:
         return jsonify({"message": "Missing form_responses"}), 400
@@ -306,6 +308,7 @@ async def gen_group_sim():
     return jsonify({"message": "error parsing json"}), 400
 
 
+# don't think this should be async for now, might cause race condition?
 @app.route("/api/update_user_profile", methods=["POST"])
 def adjust_user_vector():
     if request.is_json:
@@ -322,7 +325,7 @@ def adjust_user_vector():
 
 
 @app.route("/api/find_x_radius_locations", methods=["GET"])
-def find_locations():
+async def find_locations():
     if request.is_json:
         data = request.get_json()
 
@@ -355,7 +358,6 @@ def find_locations():
             place_ids.append(hit["_source"]["place_id"])
         return jsonify({"result": place_ids}), 200
     return jsonify({"message": "error parsing json"}), 400
-
 
 # Run the Flask app
 if __name__ == "__main__":
