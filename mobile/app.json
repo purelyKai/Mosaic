@@ -11,7 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mobile.mobile",
       "config": {
-        "googleMapsApiKey": "AIzaSyBik5mC1Z9ZIl1MZiCR6PM1CzeKBCKLe3w"
+        "googleMapsApiKey": "AIzaSyBr9CRNYdqljL6dLtFfN7qAAqAxgpFYTHM"
       },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Allow Mosaic to use your location",
@@ -30,7 +30,7 @@
       "predictiveBackGestureEnabled": false,
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBik5mC1Z9ZIl1MZiCR6PM1CzeKBCKLe3w"
+          "apiKey": "AIzaSyBr9CRNYdqljL6dLtFfN7qAAqAxgpFYTHM"
         }
       },
       "permissions": [
