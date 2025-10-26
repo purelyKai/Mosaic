@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import numpy as np
 import openai
 from find_places import find_places
@@ -19,6 +20,7 @@ client = Elasticsearch(
 )
 
 app = Flask(__name__)
+CORS(app)
 
 openai.api_key = OPENAI_API_KEY  # someones gotta make this
 
@@ -136,11 +138,12 @@ async def find_nearby_places():
     return jsonify({"message": "Expected JSON"}), 400
 
 
-@app.route("/api/add_user", methods=["GET", "POST"])
+@app.route("/api/add_user", methods=["POST"])
 def add_user():
     data = request.get_json()
     if not data or "form_responses" not in data:
         return jsonify({"message": "Missing form_responses"}), 400
+    print("Received request data:", data)
 
     form_text = data.get("form_responses")
     userId = data.get("userId")  # userId should come from supabase (frontend)
@@ -167,7 +170,6 @@ def add_user():
         print(f"Indexing error: {e}")
         return jsonify({"message": "Failed to create user"}), 500
 
-
 # Run the Flask app
 if __name__ == "__main__":
-    app.run(host="localhost", port=5000, debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=True)

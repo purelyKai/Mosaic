@@ -3,10 +3,11 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator }
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
-import { useAuthContext } from '../context/AuthContext';
+import { AuthContext, useAuthContext } from '../context/AuthContext';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../constants/theme';
 import SignOutButton from '../components/GoogleLogoutButton';
 import PreferencesForm from '../components/PreferencesForm';
+import { postPreferences } from '../API/Elastic';
 
 type GroupsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Groups'>;
 
@@ -55,8 +56,11 @@ function listToSentances(selections: string[]): string {
 
 const PreferencesScreen = () => {
   const navigation = useNavigation<GroupsScreenNavigationProp>();
-  const {} = useAuthContext();
+  const { session } = useAuthContext()
+  const userId = session?.user?.id
   const [selected, setSelected] = useState<string[]>([]);
+
+  
 
   return (
     <View style={styles.container}>
@@ -67,11 +71,13 @@ const PreferencesScreen = () => {
 
       <PreferencesForm updatePreferences={setSelected} preferences={selected} categories={categories}/>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={() => console.log('String to init user vector: ', listToSentances(selected))}>
+      {userId && (<View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={() => {
+        postPreferences(userId, listToSentances(selected));
+      }}>
           <Text style={styles.buttonText}>Save Preferences</Text>
         </TouchableOpacity>
-      </View>
+      </View>)}
     </View>
   );
 };
