@@ -43,22 +43,28 @@ def normalize(vec):  # kai
 def get_user_vectors(user_ids):
     docs = client.mget(index=INDEX_NAME, ids=user_ids)
     vecs = []
-    for id in user_ids: 
+    for id in user_ids:
         user_doc = client.search(
-            index=INDEX_NAME, 
+            index=INDEX_NAME,
             query={
                 "bool": {
-                    "must": [{"term" : {"doc_type": "user"}},
-                             {"term": {"user_uuid": id}}], 
+                    "must": [
+                        {"term": {"doc_type": "user"}},
+                        {"term": {"user_uuid": id}},
+                    ],
                 }
             },
-            _source=["user_vec"]
+            _source=["user_vec"],
         )
-        user_vec = user_doc['hits']['hits'][0]['_source']['user_vec'] # ik im so good at coding, what company want me tho?
+        user_vec = user_doc["hits"]["hits"][0]["_source"][
+            "user_vec"
+        ]  # ik im so good at coding, what company want me tho?
         vecs.append(user_vec)
     if not vecs:
         return None
-    print("succesfully got the dense vectors for the following users: " + str(user_ids)) # lol
+    print(
+        "succesfully got the dense vectors for the following users: " + str(user_ids)
+    )  # lol
     return np.array(vecs)
 
 
@@ -237,8 +243,11 @@ async def gen_group_sim():
 
         # whats good security?
         user_ids = data.get("user_ids")
-        if not user_ids:
-            return jsonify({"message": "please provide user ids"}), 400
+        group_lat = float(data.get("lat"))
+        group_long = float(data.get("long"))
+        radius = data.get("radius")
+        if not all([user_ids, group_lat, group_long, radius]):
+            return jsonify({"message": "no group location or user ids provided"}), 400
 
         # collect all the user vectors to later mean them out
         user_vectors = get_user_vectors(user_ids)
@@ -259,24 +268,34 @@ async def gen_group_sim():
 
         # start k-neighbors search
         k = 10  # recomeend top 10 places
+        num_candidates_val = 50 # can really be anything
         search_query = {
             "knn": {
                 "field": "place_vec",
                 "k": k,
-                "num_candidates": 50,
+                "num_candidates": num_candidates_val,
                 "query_vector": normalized_group_vec,
                 "filter": {
-                    "term": {
-                        "doc_type": "place"
-                    }  # probably want to add geo spatial query here at some point
+                    "bool": {
+                        "must": [
+                            {"term": {"doc_type": "place"}},
+                            {
+                                "geo_distance": {
+                                    "distance": str(radius) + "mi",
+                                    "location": {"lat": group_lat, "lon": group_long},
+                                }
+                            },
+                        ]
+                    }
                 },
-            },
-            "size": k,
-            "_source": ["place_id"],
+            }
         }
-        # lets just pray this works? ^ 
+        # lets just pray this works? ^
         try:
-            res = client.search(index=INDEX_NAME, body=search_query)
+            res = client.search(
+                index=INDEX_NAME,
+                body=search_query,size=k,_source=["place_vec"],
+            )
             recs = []
             for hit in res["hits"]["hits"]:
                 recs.append(hit["_source"]["place_id"])
@@ -322,18 +341,18 @@ def find_locations():
                             "distance": radi + "mi",
                             "location": {"lat": lat, "lon": long},
                         }
-                    }
+                    },
                 }
             },
-            _source=["place_id"]
+            _source=["place_id"],
         )
 
         if not place_docs:
             return jsonify({"message": "no places found in specified location"}), 400
-        
-        place_ids = [] 
-        for hit in place_docs['hits']['hits']: 
-            place_ids.append(hit['_source']['place_id'])
+
+        place_ids = []
+        for hit in place_docs["hits"]["hits"]:
+            place_ids.append(hit["_source"]["place_id"])
         return jsonify({"result": place_ids}), 200
     return jsonify({"message": "error parsing json"}), 400
 
