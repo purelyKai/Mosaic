@@ -12,8 +12,13 @@ load_dotenv()
 CLOUD_ID = os.getenv("ELASTIC_CLOUD_ID")
 ELASTIC_API_KEY = os.getenv("ELASTIC_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
+HOST_IP = os.getenv("HOST_IP")
+HOST_PORT = int(os.getenv("HOST_PORT"))
 INDEX_NAME = "mosaic-index"
+
+
+print(HOST_IP)
+print(HOST_PORT)
 client = Elasticsearch(
     CLOUD_ID,
     api_key=ELASTIC_API_KEY,
@@ -98,8 +103,8 @@ def update_user_vector(user_id, place_id, alpha=0.2):
     # return type of client.get is either self or None
     if not user_doc or not place_doc:
         return jsonify({"message": "Error fetching related docs"}), 404
-    
-    r = update_view_count(place_doc['hits']['hits'][0]['_id']) # update view count
+
+    r = update_view_count(place_doc["hits"]["hits"][0]["_id"])  # update view count
     user_source = user_doc["hits"]["hits"][0]["_source"]
     place_source = place_doc["hits"]["hits"][0]["_source"]
 
@@ -150,12 +155,12 @@ async def find_nearby_places():
 
         lat = float(data.get("lat"))
         lon = float(data.get("lon"))
-
+        radius = data.get("radius")
         if not all([lat, lon]):
             return jsonify({"message": "Missing required fields: lat, lon"}), 400
 
         # run async function synchronously
-        response = find_places(lat, lon)
+        response = find_places(lat, lon,radius_meters=int(radius))
 
         for place in response.places:
             place_id = place.id
@@ -270,7 +275,7 @@ async def gen_group_sim():
 
         # start k-neighbors search
         k = 10  # recomeend top 10 places
-        num_candidates_val = 50 # can really be anything
+        num_candidates_val = 50  # can really be anything
         search_query = {
             "knn": {
                 "field": "place_vec",
@@ -296,7 +301,9 @@ async def gen_group_sim():
         try:
             res = client.search(
                 index=INDEX_NAME,
-                body=search_query,size=k,_source=["place_vec"],
+                body=search_query,
+                size=k,
+                _source=["place_vec"],
             )
             recs = []
             for hit in res["hits"]["hits"]:
@@ -359,6 +366,7 @@ async def find_locations():
         return jsonify({"result": place_ids}), 200
     return jsonify({"message": "error parsing json"}), 400
 
+
 # Run the Flask app
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5300, debug=True)
+    app.run(host=HOST_IP, port=HOST_PORT, debug=True)

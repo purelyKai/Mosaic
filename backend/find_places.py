@@ -11,7 +11,8 @@ client = places_v1.PlacesClient(
   # Instantiates the Places client, passing the API key
   client_options={"api_key": PLACES_API_KEY}
 )
-
+def get_images(place_id): 
+    pass
 def find_places(lat, lng, radius_meters=20000, types=["restaurant"]):
     center_point = latlng_pb2.LatLng(latitude=lat, longitude=lng)
     circle_area = places_v1.types.Circle(
