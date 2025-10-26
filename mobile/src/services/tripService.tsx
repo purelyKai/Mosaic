@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { Trip, CreateTripInput, TripMember } from '../types'
-import { updateGroupItinerary } from '../API/trip'
+import { updateGroupItinerary, postTrip, getUsersByTrip } from '../API/Trip'
 
 /**
  * Create a new trip
@@ -44,26 +44,9 @@ export const createTrip = async (input: CreateTripInput): Promise<Trip> => {
     throw new Error('Failed to create trip. Please try again.')
   }
 
-
-  // fetch all existing userids in the trip to pass to updateGroupItinerary
-    const { data: members, error: membersError } = await supabase
-    .from('trip_members')
-    .select('user_id')
-    .eq('trip_id', trip.id)
-
-  if (membersError) {
-    console.error('Error fetching trip members:', membersError)
-    throw new Error('Failed to fetch trip members after trip creation.')
-  }
-
-  const prevGroupIds = (members?.map((m: { user_id: string }) => m.user_id) || []).join(',')
-
-  // Update group itinerary after trip creation 
-  const res = updateGroupItinerary(prevGroupIds, user.data.user.id, trip.id)
-  if (res instanceof Error) {
-    console.error('Error updating itinerary after trip creation:', res)
-  }
-
+  // upon trip creation in supabase, request to flask to populate data for user feed
+  await postTrip(trip)
+  const place_ids_group = await updateGroupItinerary([user.data.user.id], trip)
 
   return trip as Trip
 }
@@ -100,6 +83,7 @@ export const joinTrip = async (code: string): Promise<Trip> => {
     throw new Error('No trip found with that code. Please check the code and try again.')
   }
 
+
   // Add the user to trip_members
   const { error: memberError } = await supabase
     .from('trip_members')
@@ -116,6 +100,11 @@ export const joinTrip = async (code: string): Promise<Trip> => {
     console.error('Error joining trip:', memberError)
     throw new Error('Failed to join trip. Please try again.')
   }
+
+  // upon addition to group in supabase, request to flask to populate data for user feed
+  const members_id_list = await getUsersByTrip(trip.id)
+  const place_ids_group = await updateGroupItinerary(members_id_list, trip)
+  console.log(place_ids_group)
 
   return trip as Trip
 }

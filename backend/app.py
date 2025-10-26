@@ -146,6 +146,11 @@ def update_view_count(doc_id):
         print(f"Update error: {e}")
         return jsonify({"message": "Failed to update view count."}), 500
 
+@app.before_request
+def log_request_info():
+    print(f"Incoming request: {request.method} {request.path}")
+    print(f"Headers: {dict(request.headers)}")
+    print(f"Body: {request.get_data(as_text=True)}")
 
 # finds nearby places to a user and indexes them
 @app.route("/api/find_places", methods=["POST"])
