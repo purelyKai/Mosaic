@@ -43,11 +43,22 @@ def normalize(vec):  # kai
 def get_user_vectors(user_ids):
     docs = client.mget(index=INDEX_NAME, ids=user_ids)
     vecs = []
-    for doc in docs["docs"]:
-        if doc:
-            vecs.append(doc["_source"]["user_vec"])
+    for id in user_ids: 
+        user_doc = client.search(
+            index=INDEX_NAME, 
+            query={
+                "bool": {
+                    "must": [{"term" : {"doc_type": "user"}},
+                             {"term": {"user_uuid": id}}], 
+                }
+            },
+            _source=["user_vec"]
+        )
+        user_vec = user_doc['hits']['hits'][0]['_source']['user_vec'] # ik im so good at coding, what company want me tho?
+        vecs.append(user_vec)
     if not vecs:
         return None
+    print("succesfully got the dense vectors for the following users: " + str(user_ids)) # lol
     return np.array(vecs)
 
 
@@ -184,7 +195,6 @@ async def find_nearby_places():
     return jsonify({"message": "Expected JSON"}), 400
 
 
-# going to have to change these based on how we want to get the form feed responses from users
 @app.route("/api/add_user", methods=["POST"])
 def add_user():
     data = request.get_json()
@@ -219,7 +229,7 @@ def add_user():
 
 
 # gotta generate the group feed off similar interests, but unsure how to go about it
-@app.route("/api/generate_group_feed", methods=["GET", "POST"])
+@app.route("/api/generate_group_feed", methods=["GET"])
 async def gen_group_sim():
     if request.is_json:
         data = request.get_json()
@@ -263,7 +273,7 @@ async def gen_group_sim():
             "size": k,
             "_source": ["place_id"],
         }
-
+        # lets just pray this works? ^ 
         try:
             res = client.search(index=INDEX_NAME, body=search_query)
             recs = []
@@ -276,7 +286,7 @@ async def gen_group_sim():
     return jsonify({"message": "error parsing json"}), 400
 
 
-@app.route("/api/update_user_profile", methods=["GET", "POST"])
+@app.route("/api/update_user_profile", methods=["POST"])
 def adjust_user_vector():
     if request.is_json:
         data = request.get_json()
@@ -291,7 +301,7 @@ def adjust_user_vector():
     return jsonify({"message": "expected json"}), 400
 
 
-@app.route("/api/find_x_radius_locations", methods=["GET", "POST"])
+@app.route("/api/find_x_radius_locations", methods=["GET"])
 def find_locations():
     if request.is_json:
         data = request.get_json()
