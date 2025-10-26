@@ -39,21 +39,15 @@ def get_place_information(place_id):
         if 'photos' not in data or not data['photos']:
             print(f"No photos found for place: {place_name}")
             # Return name with a None URL if no photo is available
-            return (None, place_name) 
-            
+            return (None, place_name)
+        
         photo_resource_name = data['photos'][0]['name']
         
         print("Place Name:", place_name)
         print("Photo Resource Name (Token):", photo_resource_name)
         
         # Construct the Final Image URL
-        img_url = (
-            "https://places.googleapis.com/v1/" + 
-            photo_resource_name + 
-            ":media" + 
-            "?maxHeightPx=400&maxWidthPx=400" + # Set your desired image size
-            "&key=" + PLACES_API_KEY
-        )
+        img_url = data['photos'][0]['flagContentUri']
         
         print("Final Image URL:", img_url)
         
@@ -86,7 +80,7 @@ def find_places(lat, lng, radius_meters=20000, types=["restaurant"]):
     # https://developers.google.com/maps/documentation/places/web-service/place-details#fieldmask
     # format: places.<field_name> 
     # if you want more fields, make them comma separated
-    fieldMask = "places.id,places.displayName,places.generativeSummary"
+    fieldMask = "places.id,places.displayName,places.generativeSummary,places.photos"
 
     # Make the request
     response = client.search_nearby(request=request, metadata=[("x-goog-fieldmask",fieldMask)])

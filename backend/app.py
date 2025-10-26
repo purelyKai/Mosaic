@@ -373,6 +373,7 @@ async def find_locations():
         place_ids = []
         for hit in place_docs["hits"]["hits"]:
             place_ids.append(hit["_source"]["place_id"])
+        dih = generate_response_dict(place_ids)
         return jsonify({"result": place_ids}), 200
     return jsonify({"message": "error parsing json"}), 400
 
