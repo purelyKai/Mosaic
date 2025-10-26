@@ -28,29 +28,64 @@ def get_embedding(text):
     response = openai.embeddings.create(
         model="text-embedding-3-small",
         input=text,
-        dimensions=512, # 512 cuz we broke
+        dimensions=512,  # 512 cuz we broke
     )
     return response.data[0].embedding
 
 
-def normalize(vec):
+def normalize(vec): # kai
     """Normalize a vector to unit length."""
-    v = np.array(vec)
+    v = np.array(vec) 
     return (v / np.linalg.norm(v)).tolist()
+
+
+def get_user_vectors(user_ids):
+    docs = client.mget(index=INDEX_NAME, ids=user_ids)
+    vecs = []
+    for doc in docs["docs"]:
+        if doc:
+            vecs.append(doc["_source"]["user_vec"])
+    if not vecs:
+        return None
+    return np.array(vecs)
 
 
 def update_user_vector(user_id, place_id, alpha=0.2):
     """Update user embedding after liking a place."""
-    user_doc = client.get(index=INDEX_NAME, id=user_id)
-    place_doc = client.get(index=INDEX_NAME, id=place_id)
-    
-    # return type of client.get is either self or None  
-    if not user_doc or place_doc:
+    user_doc = client.search(index=INDEX_NAME, 
+        query= { # should have linked this sooner but here it is: https://www.elastic.co/docs/explore-analyze/query-filter/languages/querydsl
+            "bool": {
+                "must": [
+                    {"term" : {"user_uuid": user_id}},
+                    {"term" : {"doc_type": "user"}}
+                ]
+            }
+        },
+        _source=["user_vec"]
+    )
+    place_doc = client.search(index=INDEX_NAME, 
+        query= {
+            "bool": {
+                "must": [
+                    {"term" : {"place_id": place_id}},
+                    {"term": {"doc_type" : "place"}}
+                ]
+            }
+        },
+        _source=["place_vec"]
+    )
+
+    # return type of client.get is either self or None
+    if not user_doc or not place_doc:
         return jsonify({"message": "Error fetching related docs"}), 404
-    place_vec = np.array(place_doc["_source"]["place_vec"])
-    user_vec = np.array(user_doc["_source"]["user_vec"])
-    new_vec = normalize((1 - alpha) * user_vec + alpha * place_vec)
-    try: 
+    user_source = user_doc['hits']['hits'][0]['_source']
+    place_source = place_doc['hits']['hits'][0]['_source']
+   
+    # these are the vectors 
+    place_vec = np.array(place_source['place_vec'])
+    user_vec = np.array(user_source['user_vec'])
+    new_vec = normalize((1 - alpha) * user_vec + alpha * place_vec) # kai
+    try:
         client.update(
             index=INDEX_NAME,
             id=user_id,
@@ -61,6 +96,7 @@ def update_user_vector(user_id, place_id, alpha=0.2):
     except Exception as e:
         print(f"ran into error when trying to update user vector: {e}")
         return jsonify({f"message": "ran into an exception"}), 400
+
 
 def update_view_count(doc_id):
     """
@@ -85,7 +121,7 @@ def update_view_count(doc_id):
 
 
 # finds nearby places to a user and indexes them
-@app.route("/api/find_places", methods=["GET", "POST"])
+@app.route("/api/find_places", methods=["POST"])
 async def find_nearby_places():
     if request.is_json:
         data = request.get_json()
@@ -101,24 +137,24 @@ async def find_nearby_places():
 
         for place in response.places:
             place_id = place.id
-            
-            # skip if we already processed this place 
+
+            # skip if we already processed this place
             doc_exists = client.exists(id=place_id, index=INDEX_NAME)
             if doc_exists:
                 continue
-            
+
             place_name = str(getattr(place, "display_name", "No title found"))
-         
-            summary = "" 
+
+            summary = ""
             if hasattr(
                 place, "generative_summary"
             ):  # sometimes generative summary is unavailable
                 summary = place.generative_summary.overview.text
-            
-            print(place) 
-            
-            # create embedded vector for the place based off summary            
-            place_dense_vec = get_embedding(summary)           
+
+            print(place)
+
+            # create embedded vector for the place based off summary
+            place_dense_vec = get_embedding(summary)
 
             doc = {
                 "location": {
@@ -138,7 +174,7 @@ async def find_nearby_places():
             except Exception as e:
                 print(f"Indexing error: {e}")
                 # we just continue lol
-                
+
         # we will need to return more data to the user from places api like name, photos, etc.
         return jsonify({"places": "hi"}), 200
 
@@ -146,7 +182,7 @@ async def find_nearby_places():
 
 
 # going to have to change these based on how we want to get the form feed responses from users
-@app.route("/api/add_user", methods=["GET", "POST"])
+@app.route("/api/add_user", methods=["POST"])
 def add_user():
     data = request.get_json()
     if not data:
@@ -160,7 +196,8 @@ def add_user():
 
     if user_exists:
         return jsonify({"message": "User already exists"}), 400
-
+    if form_text == "":
+        form_text = "This user has no strong preferences and has no dietary preferences, is open to all food types, and is open to all activities."
     # generate initial embedding
     user_embedding = get_embedding(form_text)
 
@@ -180,10 +217,77 @@ def add_user():
 
 # gotta generate the group feed off similar interests, but unsure how to go about it
 @app.route("/api/generate_group_feed", methods=["GET", "POST"])
-def gen_group_sim():
-    user_vectors = np.array([])
-    covariance_matrix =  np.cov(user_vectors, rowvar=False) #https://en.wikipedia.org/wiki/Covariance_matrix
+async def gen_group_sim():
+    if request.is_json:
+        data = request.get_json()
+
+        # whats good security?
+        user_ids = data.get("user_ids")
+        if not user_ids:
+            return jsonify({"message": "please provide user ids"}), 400
+
+        # collect all the user vectors to later mean them out
+        user_vectors = get_user_vectors(user_ids)
+        if user_vectors is None or user_vectors.size == 0:
+            return (
+                jsonify(
+                    {
+                        "message": "Could not find valid user vectors for the group. Check IDs."
+                    }
+                ),
+                404,
+            )
+
+        # avg out the vectors basically, SO ai for this math
+        # kai
+        group_centroid_vec = np.mean(user_vectors, axis=0)
+        normalized_group_vec = normalize(np.array(group_centroid_vec))
+
+        # start k-neighbors search
+        k = 10  # recomeend top 10 places
+        search_query = {
+            "knn": {
+                "field": "place_vec",
+                "k": k,
+                "num_candidates": 50,
+                "query_vector": normalized_group_vec,
+                "filter": {
+                    "term": {
+                        "doc_type": "place"
+                    }  # probably want to add geo spatial query here at some point
+                },
+            },
+            "size": k,
+            "_source": ["place_id"],
+        }
+
+        try:
+            res = client.search(index=INDEX_NAME, body=search_query)
+            recs = []
+            for hit in res["hits"]["hits"]:
+                recs.append(hit["_source"]["place_id"])
+            return jsonify({"group place ids": recs}), 200
+        except Exception as e:
+            print(f"Ran into exception {e}")
+            return jsonify({"message": "ran into error parsing places for groups"})
     return jsonify({"message": "error parsing json"}), 400
+
+
+@app.route("/api/update_user_profile", methods=["GET", "POST"])
+def adjust_user_vector():
+    if request.is_json:
+        data = request.get_json()
+        userId = data.get("userId")
+        placeId = data.get("placeId")
+
+        if not userId or not placeId:
+            return jsonify({"message": "need both place and user id"}), 400
+
+        return update_user_vector(userId,placeId)
+
+    return jsonify({"message": "expected json"}), 400
+
+
 # Run the Flask app
 if __name__ == "__main__":
     app.run(host="localhost", port=5000, debug=True)
