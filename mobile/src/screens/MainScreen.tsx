@@ -20,7 +20,15 @@ const Tab = createBottomTabNavigator();
 const DiscoverTab = ({ groupId }: { groupId: string }) => {
 
   const [places, setPlaces] = useState<Place[]>([])
+  const [selectedPlaces, setSelectedPlaces] = useState<string[]>([]);
 
+  const handleSelectPlace = (place: Place) => {
+    setSelectedPlaces((prev) =>
+      prev.includes(place.id)
+        ? prev.filter((id) => id !== place.id) // remove if already selected
+        : [...prev, place.id] // add if not selected
+    );
+  };
 
   const hasRun = useRef(false);
   useEffect(() => {
@@ -64,7 +72,8 @@ const DiscoverTab = ({ groupId }: { groupId: string }) => {
       {/* Add SwipeableStack component */}
       <ImageBoard
         places={places}
-        onSelect={(place) => console.log('Selected:', place.name)}
+        selectedPlaceIds={selectedPlaces}
+        onSelect={handleSelectPlace}
       />
     </View>
   );

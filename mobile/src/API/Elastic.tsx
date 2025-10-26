@@ -171,4 +171,32 @@ export const parsePlacesResponse = (response: any): Place[] => {
   });
 };
 
+export const postLike = async (userId: string, placeId: string) => {
+  const requestBody = {
+    userId: userId,
+    placeId: placeId,
+  };
 
+  try {
+    // First endpoint: /update_user_profile
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/update_user_profile`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Error from /update_user_profile");
+    }
+
+    console.log("Response to like: ", data.message)
+
+    return true;
+  } catch (error) {
+    console.error("Error posting like:", error);
+    return false;
+  }
+};
