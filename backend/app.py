@@ -4,7 +4,7 @@ from elasticsearch import Elasticsearch
 from flask import Flask, request, jsonify
 import numpy as np
 import openai
-from find_places import find_places
+from find_places import find_places, get_place_information
 from flask_cors import CORS
 
 load_dotenv()
@@ -13,7 +13,7 @@ CLOUD_ID = os.getenv("ELASTIC_CLOUD_ID")
 ELASTIC_API_KEY = os.getenv("ELASTIC_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 HOST_IP = os.getenv("HOST_IP")
-HOST_PORT = int(os.getenv("HOST_PORT"))
+HOST_PORT = int(os.getenv("HOST_PORT", 5000))
 INDEX_NAME = "mosaic-index"
 
 
@@ -28,6 +28,17 @@ CORS(app)
 
 openai.api_key = OPENAI_API_KEY  # someones gotta make this
 
+def generate_response_dict(recs): 
+    dih = {}  # this will be a dict that gets returns to the frontend man, idek anymore im so tired
+    for place_id in recs:
+        name, image_url = "o", "o"
+        print(get_place_information(place_id))
+        dih[str(place_id)] = {
+            "image_url": image_url,
+            "name": name,
+            "place_id": place_id
+        } 
+    return dih 
 
 def get_embedding(text):
     """Generate embedding for text using OpenAI."""
@@ -203,7 +214,7 @@ async def find_nearby_places():
                 # we just continue lol
 
         # we will need to return more data to the user from places api like name, photos, etc.
-        return jsonify({"places": "hi"}), 200
+        return jsonify({"populated backend with": doc}), 200
 
     return jsonify({"message": "Expected JSON"}), 400
 
@@ -308,7 +319,8 @@ async def gen_group_sim():
             recs = []
             for hit in res["hits"]["hits"]:
                 recs.append(hit["_source"]["place_id"])
-            return jsonify({"group place ids": recs}), 200
+            dih = generate_response_dict(recs)
+            return {"places": dih}, 200
         except Exception as e:
             print(f"Ran into exception {e}")
             return jsonify({"message": "ran into error parsing places for groups"})
