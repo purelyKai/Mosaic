@@ -159,20 +159,36 @@ export const getTripById = async (tripId: string): Promise<Trip | null> => {
 }
 
 /**
- * Get all members of a trip
+ * Get all members of a trip with user details
  */
-export const getTripMembers = async (tripId: string): Promise<TripMember[]> => {
+export const getTripMembers = async (tripId: string) => {
   const { data: members, error } = await supabase
     .from('trip_members')
-    .select('*')
+    .select(`
+      id,
+      joined_at,
+      user_id,
+      users:user_id (
+        id,
+        display_name,
+        photo_url
+      )
+    `)
     .eq('trip_id', tripId)
+    .order('joined_at', { ascending: true })
 
   if (error) {
     console.error('Error fetching trip members:', error)
     return []
   }
 
-  return (members || []) as TripMember[]
+  return (members || []).map((member: any) => ({
+    id: member.id,
+    user_id: member.user_id,
+    joined_at: member.joined_at,
+    display_name: member.users?.display_name || 'Unknown',
+    photo_url: member.users?.photo_url || null,
+  }))
 }
 
 /**

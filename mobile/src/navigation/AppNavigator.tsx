@@ -14,7 +14,7 @@ import PreferencesScreen from '../screens/PreferencesScreen';
 const Stack = createStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {
-  const { isLoggedIn, isLoading, profile } = useAuthContext()
+  const { isLoggedIn, isLoading, user } = useAuthContext()
 
   // Show loading screen while auth state is being determined
   if (isLoading) {
@@ -25,18 +25,25 @@ export const AppNavigator = () => {
     );
   }
 
+  // Determine if user needs to complete preferences
+  const needsPreferences = isLoggedIn && user && !user.filled_questionnaire;
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isLoggedIn ? (
           <Stack.Screen name="Auth" component={AuthScreen} />
-        ) : (
+        ) : needsPreferences ? (
           <>
-          {!profile?.filled_questionnaire && (
             <Stack.Screen name="Preferences" component={PreferencesScreen} />
-          )}
             <Stack.Screen name="Groups" component={GroupsScreen} />
             <Stack.Screen name="Main" component={MainScreen} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Groups" component={GroupsScreen} />
+            <Stack.Screen name="Main" component={MainScreen} />
+            <Stack.Screen name="Preferences" component={PreferencesScreen} />
           </>
         )}
       </Stack.Navigator>

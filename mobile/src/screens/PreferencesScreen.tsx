@@ -8,6 +8,7 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../constants/theme';
 import SignOutButton from '../components/GoogleLogoutButton';
 import PreferencesForm from '../components/PreferencesForm';
 import { postPreferences } from '../API/Elastic';
+import { supabase } from '@/lib/supabase';
 
 type GroupsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Groups'>;
 
@@ -74,7 +75,28 @@ const PreferencesScreen = () => {
       {userId && (<View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={async () => {
           try {
+            // Save preferences to Elastic
             await postPreferences(userId, listToSentances(selected));
+            
+            // Update filled_questionnaire flag in Supabase
+            const { error } = await supabase
+              .from('users')
+              .update({ filled_questionnaire: true })
+              .eq('id', userId);
+            
+            if (error) {
+              console.error('Error updating questionnaire flag:', error);
+              throw error;
+            }
+            
+            // Trigger auth state refresh by signing the user out and back in immediately
+            // This will cause AuthProvider to refetch the user data with the updated flag
+            const currentSession = await supabase.auth.getSession();
+            if (currentSession.data.session) {
+              // Just refresh the session to trigger a re-fetch
+              await supabase.auth.refreshSession();
+            }
+            
             navigation.navigate('Groups');
           } catch (error) {
             console.error('Error saving preferences:', error);

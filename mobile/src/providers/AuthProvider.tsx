@@ -1,11 +1,12 @@
 import { AuthContext } from '../context/AuthContext'
 import { supabase } from '@/lib/supabase'
 import type { Session } from '@supabase/supabase-js'
+import { User } from '../types/user.types'
 import { PropsWithChildren, useEffect, useState } from 'react'
 
 export default function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | undefined | null>()
-  const [profile, setProfile] = useState<any>()
+  const [user, setUser] = useState<User | null | undefined>()
   const [isLoading, setIsLoading] = useState<boolean>(true)
 
   // Fetch the session once, and subscribe to auth state changes
@@ -41,30 +42,35 @@ export default function AuthProvider({ children }: PropsWithChildren) {
     }
   }, [])
 
-  // Fetch the profile when the session changes
+  // Fetch the user data when the session changes
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchUser = async () => {
       // Only set loading if session is not undefined (meaning we've finished initial fetch)
       if (session !== undefined) {
         setIsLoading(true)
 
         if (session) {
-          const { data } = await supabase
-            .from('profiles')
+          const { data, error } = await supabase
+            .from('users')
             .select('*')
             .eq('id', session.user.id)
             .single()
 
-          setProfile(data)
+          if (error) {
+            console.error('Error fetching user:', error)
+            setUser(null)
+          } else {
+            setUser(data as User)
+          }
         } else {
-          setProfile(null)
+          setUser(null)
         }
 
         setIsLoading(false)
       }
     }
 
-    fetchProfile()
+    fetchUser()
   }, [session])
 
   return (
@@ -72,7 +78,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
       value={{
         session,
         isLoading,
-        profile,
+        user,
         isLoggedIn: !!session,
       }}
     >

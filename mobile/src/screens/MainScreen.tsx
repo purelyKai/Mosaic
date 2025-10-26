@@ -98,13 +98,103 @@ const DiscoverTab = () => {
   );
 };
 
-const GroupTab = () => {
+const GroupTab = ({ route }: { route: any }) => {
+  const [members, setMembers] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const navigation = useNavigation<MainScreenNavigationProp>();
+  const mainRoute = useRoute<MainScreenRouteProp>();
+  const { groupId } = mainRoute.params;
+
+  React.useEffect(() => {
+    loadMembers();
+  }, [groupId]);
+
+  const loadMembers = async () => {
+    try {
+      const { getTripMembers } = await import('../services/tripService');
+      const tripMembers = await getTripMembers(groupId);
+      setMembers(tripMembers);
+    } catch (error) {
+      console.error('Error loading members:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLeaveTrip = async () => {
+    const { Alert } = await import('react-native');
+    Alert.alert(
+      'Leave Trip',
+      'Are you sure you want to leave this trip?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { leaveTrip } = await import('../services/tripService');
+              await leaveTrip(groupId);
+              Alert.alert('Success', 'You have left the trip');
+              navigation.goBack();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to leave trip');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.placeholderText}>Group Tab</Text>
-      <Text style={styles.placeholderSubtext}>View members and recommendations</Text>
-      {/* Add MemberList component */}
-      {/* Add Recommendations section */}
+    <View style={styles.groupContainer}>
+      {/* Members Section */}
+      <View style={styles.membersSection}>
+        <View style={styles.membersSectionHeader}>
+          <Text style={styles.membersSectionTitle}>Trip Members</Text>
+          <TouchableOpacity onPress={handleLeaveTrip} style={styles.leaveButton}>
+            <Text style={styles.leaveButtonText}>Leave Trip</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        ) : (
+          <View style={{ flexDirection: 'row' }}>
+            {members.map((member) => (
+              <View key={member.id} style={styles.memberItem}>
+                <View style={styles.memberAvatar}>
+                  {member.photo_url ? (
+                    <View style={styles.memberAvatarImage} />
+                  ) : (
+                    <Text style={styles.memberAvatarText}>
+                      {member.display_name.charAt(0).toUpperCase()}
+                    </Text>
+                  )}
+                </View>
+                <Text style={styles.memberName} numberOfLines={1}>
+                  {member.display_name.substring(0, 10)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Itinerary Section - Placeholder */}
+      <View style={styles.itinerarySection}>
+        <Text style={styles.itinerarySectionTitle}>Itinerary</Text>
+        <View style={styles.itineraryPlaceholder}>
+          <Text style={styles.itineraryPlaceholderText}>
+            Coming soon...
+          </Text>
+          <Text style={styles.itineraryPlaceholderSubtext}>
+            Your trip itinerary will appear here
+          </Text>
+        </View>
+      </View>
     </View>
   );
 };
@@ -215,7 +305,103 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     borderBottomColor: COLORS.text,
     borderBottomWidth: 2
-  }
+  },
+  // Group Tab Styles
+  groupContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  membersSection: {
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.light,
+  },
+  membersSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  membersSectionTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  leaveButton: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.light,
+    borderRadius: 8,
+  },
+  leaveButtonText: {
+    fontSize: FONT_SIZES.sm,
+    color: '#EF4444',
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    paddingVertical: SPACING.lg,
+  },
+  loadingText: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+  },
+  memberItem: {
+    alignItems: 'center',
+    marginRight: SPACING.md,
+    width: 70,
+  },
+  memberAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
+  memberAvatarImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.light,
+  },
+  memberAvatarText: {
+    fontSize: FONT_SIZES.xl,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  memberName: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  itinerarySection: {
+    flex: 1,
+    padding: SPACING.lg,
+  },
+  itinerarySectionTitle: {
+    fontSize: FONT_SIZES.xl,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: SPACING.md,
+  },
+  itineraryPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itineraryPlaceholderText: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+  itineraryPlaceholderSubtext: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
 });
 
 export default MainScreen;
