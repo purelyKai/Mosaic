@@ -62,7 +62,7 @@ export const postTrip = async (trip: Trip): Promise<string[] | null> => {
 
     // Second endpoint: /find_x_radius_locations
     const response2 = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/find_x_radius_locations`, {
-      method: "POST",
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
