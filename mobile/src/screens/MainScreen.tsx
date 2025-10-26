@@ -98,12 +98,10 @@ const DiscoverTab = () => {
   );
 };
 
-const GroupTab = ({ route }: { route: any }) => {
+const GroupTab = ({ groupId }: { groupId: string }) => {
   const [members, setMembers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const navigation = useNavigation<MainScreenNavigationProp>();
-  const mainRoute = useRoute<MainScreenRouteProp>();
-  const { groupId } = mainRoute.params;
 
   React.useEffect(() => {
     loadMembers();
@@ -135,8 +133,14 @@ const GroupTab = ({ route }: { route: any }) => {
             try {
               const { leaveTrip } = await import('../services/tripService');
               await leaveTrip(groupId);
-              Alert.alert('Success', 'You have left the trip');
-              navigation.goBack();
+              
+              // Navigate back to Groups screen (will trigger focus listener and refresh)
+              navigation.navigate('Groups');
+              
+              // Show success message after navigation
+              setTimeout(() => {
+                Alert.alert('Success', 'You have left the trip');
+              }, 500);
             } catch (error: any) {
               Alert.alert('Error', error.message || 'Failed to leave trip');
             }
@@ -261,12 +265,13 @@ const MainScreen = () => {
         }}
       />
       <Tab.Screen 
-        name="Group" 
-        component={GroupTab}
+        name="Group"
         options={{
           title: 'Group',
         }}
-      />
+      >
+        {() => <GroupTab groupId={groupId} />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 };

@@ -23,7 +23,7 @@ export const createTrip = async (input: CreateTripInput): Promise<Trip> => {
 
   const tripCode = codeData as string
 
-  // Insert the trip
+  // Insert the trip (SQL trigger automatically adds creator to trip_members)
   const { data: trip, error: tripError } = await supabase
     .from('trips')
     .insert({
@@ -37,8 +37,6 @@ export const createTrip = async (input: CreateTripInput): Promise<Trip> => {
     })
     .select()
     .single()
-  
-    const data = await fetch('https://localhost:')
 
   if (tripError) {
     console.error('Error creating trip:', tripError)

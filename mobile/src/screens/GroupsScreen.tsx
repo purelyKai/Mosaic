@@ -32,6 +32,15 @@ const GroupsScreen = () => {
     loadTrips();
   }, []);
 
+  // Refresh trips when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadTrips();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   const loadTrips = async () => {
     try {
       setLoading(true);
