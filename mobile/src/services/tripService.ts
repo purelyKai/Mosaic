@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { Trip, CreateTripInput, TripMember } from '../types'
+import { updateGroupItinerary } from '../API/trip'
 
 /**
  * Create a new trip
@@ -42,6 +43,27 @@ export const createTrip = async (input: CreateTripInput): Promise<Trip> => {
     console.error('Error creating trip:', tripError)
     throw new Error('Failed to create trip. Please try again.')
   }
+
+
+  // fetch all existing userids in the trip to pass to updateGroupItinerary
+    const { data: members, error: membersError } = await supabase
+    .from('trip_members')
+    .select('user_id')
+    .eq('trip_id', trip.id)
+
+  if (membersError) {
+    console.error('Error fetching trip members:', membersError)
+    throw new Error('Failed to fetch trip members after trip creation.')
+  }
+
+  const prevGroupIds = (members?.map((m: { user_id: string }) => m.user_id) || []).join(',')
+
+  // Update group itinerary after trip creation 
+  const res = updateGroupItinerary(prevGroupIds, user.data.user.id, trip.id)
+  if (res instanceof Error) {
+    console.error('Error updating itinerary after trip creation:', res)
+  }
+
 
   return trip as Trip
 }

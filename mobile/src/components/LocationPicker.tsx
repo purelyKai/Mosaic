@@ -105,9 +105,6 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ onLocationSelect
                 onPress={handleMapPress}
                 showsUserLocation={true}
                 showsMyLocationButton={true}
-                mapType="standard"
-                showsCompass={true}
-                showsScale={true}
             >
                 {markerCoordinate && (
                 <>

@@ -220,8 +220,7 @@ const CustomHeader = ({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: SPACING.md,
-        paddingBottom: SPACING.md,
+        padding: SPACING.md,
         backgroundColor: COLORS.background
       }}
     >

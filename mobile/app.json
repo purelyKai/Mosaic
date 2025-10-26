@@ -44,13 +44,6 @@
       "favicon": "./assets/images/white.png"
     },
     "plugins": [
-      [
-        "react-native-maps",
-        {
-          "iosGoogleMapsApiKey": "AIzaSyBik5mC1Z9ZIl1MZiCR6PM1CzeKBCKLe3w",
-          "androidGoogleMapsApiKey": "AIzaSyBik5mC1Z9ZIl1MZiCR6PM1CzeKBCKLe3w"
-        }
-      ],
       "expo-router",
       [
         "expo-location",
