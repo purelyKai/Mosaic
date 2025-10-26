@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Alert, Modal } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
@@ -7,6 +7,7 @@ import { Trip } from '../types';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '../constants/theme';
 import GoogleLogoutButton from '../components/GoogleLogoutButton';
 import { getUserTrips, createTrip, joinTrip } from '../services/tripService';
+import { LocationPicker } from '../components/LocationPicker';
 
 type GroupsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Groups'>;
 
@@ -15,15 +16,19 @@ const GroupsScreen = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   
   // Create trip form
   const [tripName, setTripName] = useState('');
-  const [cityName, setCityName] = useState('');
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
+  const [locationData, setLocationData] = useState<{
+    city: string;
+    latitude: number;
+    longitude: number;
+    radius_miles: number;
+  } | null>(null);
   
   // Join trip form
   const [tripCode, setTripCode] = useState('');
@@ -54,17 +59,26 @@ const GroupsScreen = () => {
     }
   };
 
+  const handleStartCreateTrip = () => {
+    setTripName('');
+    setLocationData(null);
+    setShowCreateModal(true);
+  };
+
+  const handleLocationSelected = (location: typeof locationData) => {
+    setLocationData(location);
+    setShowLocationPicker(false);
+    setShowCreateModal(true);
+  };
+
   const handleCreateTrip = async () => {
-    if (!tripName.trim() || !cityName.trim() || !latitude.trim() || !longitude.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!tripName.trim()) {
+      Alert.alert('Error', 'Please enter a trip name');
       return;
     }
 
-    const lat = parseFloat(latitude);
-    const lng = parseFloat(longitude);
-
-    if (isNaN(lat) || isNaN(lng)) {
-      Alert.alert('Error', 'Invalid coordinates');
+    if (!locationData) {
+      Alert.alert('Error', 'Please select a location');
       return;
     }
 
@@ -72,17 +86,16 @@ const GroupsScreen = () => {
       setCreating(true);
       const newTrip = await createTrip({
         name: tripName,
-        city: cityName,
-        latitude: lat,
-        longitude: lng,
+        city: locationData.city,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        radius_miles: locationData.radius_miles,
       });
       
       Alert.alert('Success', `Trip created! Code: ${newTrip.code}`);
       setShowCreateModal(false);
       setTripName('');
-      setCityName('');
-      setLatitude('');
-      setLongitude('');
+      setLocationData(null);
       await loadTrips();
     } catch (error: any) {
       console.error('Error creating trip:', error);
@@ -124,9 +137,22 @@ const GroupsScreen = () => {
     >
       <Text style={styles.tripName}>{item.name}</Text>
       <Text style={styles.tripLocation}>{item.city}</Text>
+      <Text style={styles.tripRadius}>{item.radius_miles} miles radius</Text>
       <Text style={styles.tripCode}>Code: {item.code}</Text>
     </TouchableOpacity>
   );
+
+  if (showLocationPicker) {
+    return (
+      <LocationPicker
+        onLocationSelected={handleLocationSelected}
+        onCancel={() => {
+          setShowLocationPicker(false);
+          setShowCreateModal(true);
+        }}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -154,7 +180,7 @@ const GroupsScreen = () => {
       )}
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={() => setShowCreateModal(true)}>
+        <TouchableOpacity style={styles.button} onPress={handleStartCreateTrip}>
           <Text style={styles.buttonText}>Create Trip</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -167,7 +193,10 @@ const GroupsScreen = () => {
 
       {/* Create Trip Modal */}
       <Modal visible={showCreateModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Create New Trip</Text>
             
@@ -177,33 +206,20 @@ const GroupsScreen = () => {
               placeholderTextColor={COLORS.textSecondary}
               value={tripName}
               onChangeText={setTripName}
+              autoFocus
             />
             
-            <TextInput
-              style={styles.input}
-              placeholder="City"
-              placeholderTextColor={COLORS.textSecondary}
-              value={cityName}
-              onChangeText={setCityName}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Latitude (e.g., 35.6762)"
-              placeholderTextColor={COLORS.textSecondary}
-              value={latitude}
-              onChangeText={setLatitude}
-              keyboardType="numeric"
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Longitude (e.g., 139.6503)"
-              placeholderTextColor={COLORS.textSecondary}
-              value={longitude}
-              onChangeText={setLongitude}
-              keyboardType="numeric"
-            />
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={() => {
+                setShowCreateModal(false);
+                setShowLocationPicker(true);
+              }}
+            >
+              <Text style={styles.locationButtonText}>
+                {locationData ? `📍 ${locationData.city} (${locationData.radius_miles}mi)` : '📍 Select Location'}
+              </Text>
+            </TouchableOpacity>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -217,7 +233,7 @@ const GroupsScreen = () => {
               <TouchableOpacity
                 style={styles.modalButton}
                 onPress={handleCreateTrip}
-                disabled={creating}
+                disabled={creating || !locationData}
               >
                 {creating ? (
                   <ActivityIndicator color="#FFFFFF" />
@@ -227,12 +243,15 @@ const GroupsScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Join Trip Modal */}
       <Modal visible={showJoinModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Join Trip</Text>
             
@@ -244,6 +263,7 @@ const GroupsScreen = () => {
               onChangeText={setTripCode}
               autoCapitalize="characters"
               maxLength={6}
+              autoFocus
             />
 
             <View style={styles.modalButtons}>
@@ -268,7 +288,7 @@ const GroupsScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -290,10 +310,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xxl,
     fontWeight: 'bold',
     color: COLORS.text,
-  },
-  signOutText: {
-    fontSize: FONT_SIZES.md,
-    color: COLORS.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -337,6 +353,11 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: SPACING.xs,
   },
+  tripRadius: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+  },
   tripCode: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.textSecondary,
@@ -368,6 +389,20 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
     fontSize: FONT_SIZES.md,
     color: COLORS.text,
+  },
+  locationButton: {
+    backgroundColor: COLORS.light,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  locationButtonText: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text,
+    fontWeight: '600',
   },
   modalButtons: {
     flexDirection: 'row',

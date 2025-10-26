@@ -132,7 +132,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ onLocationSelect
             value={radiusMiles}
             onChangeText={setRadiusMiles}
             keyboardType="number-pad"
-            placeholder="1"
+            placeholder="15"
             placeholderTextColor={COLORS.textSecondary}
             maxLength={3}
           />
