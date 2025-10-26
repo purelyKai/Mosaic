@@ -248,7 +248,7 @@ async def add_user():
 
 
 # gotta generate the group feed off similar interests, but unsure how to go about it
-@app.route("/api/generate_group_feed", methods=["GET"])
+@app.route("/api/generate_group_feed", methods=["POST"])
 async def gen_group_sim():
     if request.is_json:
         data = request.get_json()
