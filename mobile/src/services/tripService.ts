@@ -37,6 +37,8 @@ export const createTrip = async (input: CreateTripInput): Promise<Trip> => {
     })
     .select()
     .single()
+  
+    const data = await fetch('https://localhost:')
 
   if (tripError) {
     console.error('Error creating trip:', tripError)
