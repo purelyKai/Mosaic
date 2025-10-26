@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify
 import numpy as np
 import openai
 from find_places import find_places
+from flask_cors import CORS
 
 load_dotenv()
 
@@ -33,9 +34,9 @@ def get_embedding(text):
     return response.data[0].embedding
 
 
-def normalize(vec): # kai
+def normalize(vec):  # kai
     """Normalize a vector to unit length."""
-    v = np.array(vec) 
+    v = np.array(vec)
     return (v / np.linalg.norm(v)).tolist()
 
 
@@ -52,39 +53,41 @@ def get_user_vectors(user_ids):
 
 def update_user_vector(user_id, place_id, alpha=0.2):
     """Update user embedding after liking a place."""
-    user_doc = client.search(index=INDEX_NAME, 
-        query= { # should have linked this sooner but here it is: https://www.elastic.co/docs/explore-analyze/query-filter/languages/querydsl
+    user_doc = client.search(
+        index=INDEX_NAME,
+        query={  # should have linked this sooner but here it is: https://www.elastic.co/docs/explore-analyze/query-filter/languages/querydsl
             "bool": {
                 "must": [
-                    {"term" : {"user_uuid": user_id}},
-                    {"term" : {"doc_type": "user"}}
+                    {"term": {"user_uuid": user_id}},
+                    {"term": {"doc_type": "user"}},
                 ]
             }
         },
-        _source=["user_vec"]
+        _source=["user_vec"],
     )
-    place_doc = client.search(index=INDEX_NAME, 
-        query= {
+    place_doc = client.search(
+        index=INDEX_NAME,
+        query={
             "bool": {
                 "must": [
-                    {"term" : {"place_id": place_id}},
-                    {"term": {"doc_type" : "place"}}
+                    {"term": {"place_id": place_id}},
+                    {"term": {"doc_type": "place"}},
                 ]
             }
         },
-        _source=["place_vec"]
+        _source=["place_vec"],
     )
 
     # return type of client.get is either self or None
     if not user_doc or not place_doc:
         return jsonify({"message": "Error fetching related docs"}), 404
-    user_source = user_doc['hits']['hits'][0]['_source']
-    place_source = place_doc['hits']['hits'][0]['_source']
-   
-    # these are the vectors 
-    place_vec = np.array(place_source['place_vec'])
-    user_vec = np.array(user_source['user_vec'])
-    new_vec = normalize((1 - alpha) * user_vec + alpha * place_vec) # kai
+    user_source = user_doc["hits"]["hits"][0]["_source"]
+    place_source = place_doc["hits"]["hits"][0]["_source"]
+
+    # these are the vectors
+    place_vec = np.array(place_source["place_vec"])
+    user_vec = np.array(user_source["user_vec"])
+    new_vec = normalize((1 - alpha) * user_vec + alpha * place_vec)  # kai
     try:
         client.update(
             index=INDEX_NAME,
@@ -283,9 +286,42 @@ def adjust_user_vector():
         if not userId or not placeId:
             return jsonify({"message": "need both place and user id"}), 400
 
-        return update_user_vector(userId,placeId)
+        return update_user_vector(userId, placeId)
 
     return jsonify({"message": "expected json"}), 400
+
+
+@app.route("/api/find_x_radius_locations", methods=["GET", "POST"])
+def find_locations():
+    if request.is_json:
+        data = request.get_json()
+
+        lat = float(data.get("lat"))
+        long = float(data.get("long"))
+        radi = data.get("radius")
+        if not all([lat, long, radi]):
+            return jsonify({"message": "invalid values"}), 400
+        place_docs = client.search(
+            index=INDEX_NAME,
+            query={
+                "bool": {
+                    "must": [{"term": {"doc_type": "place"}}],
+                    "filter": {
+                        "geo_distance": {
+                            "distance": radi + "km",
+                            "location": {"lat": lat, "lon": long},
+                        }
+                    }
+                }
+            },
+            _source=["place_id"]
+        )
+
+        if not place_docs:
+            return jsonify({"message": "no places found in specified location"}), 400
+        print(place_docs)
+        return jsonify({"message": "greattt success"}), 200
+    return jsonify({"message": "error parsing json"}), 400
 
 
 # Run the Flask app
