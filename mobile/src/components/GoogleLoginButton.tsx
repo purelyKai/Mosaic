@@ -11,14 +11,18 @@ GoogleSignin.configure({
   webClientId: '968440012903-ma04tus0j7j222v1euo1qcgeilc3jati.apps.googleusercontent.com',
 })
 
+const signOut = async () => {
+    try {
+      await GoogleSignin.signOut();
+    } catch {}
+
+    await supabase.auth.signOut();
+};
+
+
 const handleGoogleSignIn = async () => {
   try {
-    // Sign out first to ensure clean state
-    try {
-      await GoogleSignin.signOut()
-    } catch (error) {
-      // Ignore sign out errors
-    }
+    await signOut()
 
     await GoogleSignin.hasPlayServices()
     const userInfo = await GoogleSignin.signIn()

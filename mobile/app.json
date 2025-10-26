@@ -18,8 +18,10 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow Mosaic to use your location",
         "NSLocationAlwaysUsageDescription": "Allow Mosaic to use your location",
         "UIBackgroundModes": [
+          "location",
           "location"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
