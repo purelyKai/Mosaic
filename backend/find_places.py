@@ -1,4 +1,5 @@
 import os
+import requests
 from google.maps import places_v1
 from google.type import latlng_pb2
 from dotenv import load_dotenv
@@ -6,13 +7,63 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PLACES_API_KEY = os.getenv("PLACES_API_KEY")
+URL = f"https://places.googleapis.com/v1/places/" # need to append PLACE_ID to end of this
 
 client = places_v1.PlacesClient(
   # Instantiates the Places client, passing the API key
   client_options={"api_key": PLACES_API_KEY}
 )
-def get_images(place_id): 
-    pass
+
+def get_place_information(place_id):
+    """
+    Fetches Place Details (photos, displayName) and constructs the direct image URL.
+    Returns: A tuple (img_url, display_name) or an error string.
+    """
+    full_url = URL + place_id
+    fieldMask = "photos,displayName"
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": PLACES_API_KEY,
+        "X-Goog-FieldMask": fieldMask
+    }
+    
+    res = requests.get(full_url, headers=headers)
+    
+    if res.status_code == 200:
+        data = res.json()
+        
+        # Get display name first
+        place_name = data['displayName']['text']
+        
+        # Check if photos exist
+        if 'photos' not in data or not data['photos']:
+            print(f"No photos found for place: {place_name}")
+            # Return name with a None URL if no photo is available
+            return (None, place_name) 
+            
+        photo_resource_name = data['photos'][0]['name']
+        
+        print("Place Name:", place_name)
+        print("Photo Resource Name (Token):", photo_resource_name)
+        
+        # Construct the Final Image URL
+        img_url = (
+            "https://places.googleapis.com/v1/" + 
+            photo_resource_name + 
+            ":media" + 
+            "?maxHeightPx=400&maxWidthPx=400" + # Set your desired image size
+            "&key=" + PLACES_API_KEY
+        )
+        
+        print("Final Image URL:", img_url)
+        
+        # 🚨 FINAL FIX: Return the image URL and the display name as a tuple
+        return (img_url, place_name) 
+        
+    else:
+        print(f"Error fetching details (Status {res.status_code}): {res.text}")
+        return ("something went wrong bro", None) # Return error string and None for name
+    
 def find_places(lat, lng, radius_meters=20000, types=["restaurant"]):
     center_point = latlng_pb2.LatLng(latitude=lat, longitude=lng)
     circle_area = places_v1.types.Circle(
