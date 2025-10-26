@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { Trip, CreateTripInput, TripMember } from '../types'
-import { updateGroupItinerary, postTrip, getUsersByTrip } from '../API/Trip'
+import { updateGroupItinerary, postTrip } from '../API/Elastic'
 
 /**
  * Create a new trip
@@ -222,4 +222,19 @@ export const leaveTrip = async (tripId: string): Promise<void> => {
     console.error('Error leaving trip:', error)
     throw new Error('Failed to leave trip')
   }
+}
+
+// to populate user_ids list of request body to flask generate_group_feed endpoint
+const getUsersByTrip = async (tripId: string): Promise<string[]>  => {
+  const { data, error } = await supabase
+    .from('trip_members')
+    .select('user_id')
+    .eq('trip_id', tripId)
+
+  if (error) {
+    console.error('Error fetching users:', error)
+    return []
+  }
+
+  return data.map(member => member.user_id)
 }
